@@ -1,0 +1,40 @@
+# Test deployment configuration for simframe_services wrangler
+# This tests the k2simFrame interface connecting to the wrangler
+
+deployment:
+  type: "continuous"
+  rate: 0  # seconds
+
+modules:
+  # k2simFrame interface - connects to the wrangler via REST API
+  simframe_interface:
+    name: "test_model_interface"
+    type: "interface.k2simFrame"
+    pub: "in_interface"        # Publishes 'jobs' to this channel
+    sub: ["model_output", "get_all"]      # Subscribes to results from this channel
+    module_args: None
+    config:
+      host: "0.0.0.0"
+      port: 8002 
+      wrangler_url: "http://localhost:8000"
+      timeout: 10
+      model_name: "test-model-2"
+      variable_list: ["jobs", "results"]
+      settings:
+        lattice_section: "test_section"
+        beam_properties: ["energy", "charge"]
+        machine_settings: ["quad_strength", "phase"]
+
+  # Simple passthrough transformer to simulate model processing
+  model_simulator:
+    name: "model_simulator"
+    type: "transformer.k2simFrameTransformer"
+    pub: "model_output"        
+    sub: "in_interface"        
+    module_args: None
+    config:
+      symbols:
+        - "jobs"
+      variables:
+        results:
+          formula: "jobs"    

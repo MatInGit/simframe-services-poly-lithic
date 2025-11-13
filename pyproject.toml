@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "simframe_services"
+version = "0.1.0"
+description = "A poly_lithic plugin package"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Mateusz Leputa", email = "example@email.com"},
+]
+dependencies = [
+    "fastapi>=0.121.1",
+    "httpx>=0.28.1",
+    "poly-lithic>=0.1.7.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.4.2",
+    "pytest-cov>=7.0.0",
+]
+
+# Plugin entry points - comment out the ones you don't need
+[project.entry-points."poly_lithic.interfaces"]
+k2simFrame = "simframe_services.plugins:k2simFrame"
+
+[project.entry-points."poly_lithic.transformers"]
+k2simFrameTransformer = "simframe_services.plugins:k2simFrameTransformer"
+
+# [project.entry-points."poly_lithic.model_getters"]
+# simframe_services_model_getter = "simframe_services.plugins:CustomModelGetter"
+
+[tool.setuptools]
+packages = ["simframe_services"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
