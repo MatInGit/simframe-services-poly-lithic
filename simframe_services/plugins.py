@@ -2,6 +2,7 @@ import time
 from uuid import uuid4
 from typing import Dict, Any, List, Optional
 import threading
+import socket
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
@@ -57,6 +58,9 @@ class k2simFrame(BaseInterface):
         if not self.port:
             raise ValueError("port is required in config")
         
+        # Auto-detect hostname (works in containers and bare metal)
+        self.hostname = socket.gethostname()
+        
         # Model identification
         self.model_id = config.get("model_name", str(uuid4()))
         self.model_name = config.get("model_name", f"model-{self.port}")
@@ -88,7 +92,8 @@ class k2simFrame(BaseInterface):
         self._setup_routes()
         
         logger.info(f'k2simFrame interface initialized: {self.model_name} ({self.model_id})')
-        logger.info(f'API server: http://{self.host}:{self.port}')
+        logger.info(f'API server binding to: {self.host}:{self.port}')
+        logger.info(f'API accessible at: http://{self.hostname}:{self.port}')
         
         # Start API server in background thread
         self.server_thread = threading.Thread(
@@ -221,7 +226,7 @@ class k2simFrame(BaseInterface):
                 content={
                     'model_id': self.model_id,
                     'model_name': self.model_name,
-                    'api_url': f'http://{self.host}:{self.port}',
+                    'api_url': f'http://{self.hostname}:{self.port}',
                     'variables': self.variable_list,
                     'current_job_id': self.current_job_id,
                     'queued_jobs': len([j for j in self.jobs.values() if j['status'] == 'queued']),
@@ -263,11 +268,11 @@ class k2simFrame(BaseInterface):
         logger.info(f"Registering model {self.model_name} with wrangler at {wrangler_url}")
         
         try:
-            # use ModelRegistration schema for registration
+            # Use hostname for registration (works both in Docker and bare metal)
             registration = ModelRegistration(
                 model_id=self.model_id,
                 model_name=self.model_name,
-                api_url=f"http://{self.host}:{self.port}",
+                api_url=f"http://{self.hostname}:{self.port}",
                 timestamp=time.time()
             )
             response = requests.post(

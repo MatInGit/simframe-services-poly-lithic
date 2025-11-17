@@ -16,7 +16,7 @@ modules:
     config:
       host: "0.0.0.0"
       port: 8001 
-      wrangler_url: "http://localhost:8000"
+      wrangler_url: "http://wrangler:8000"
       timeout: 10
       model_name: "test-model-1"
       variable_list: ["jobs", "results"]

@@ -143,11 +143,11 @@ def cli():
     pass
 
 @cli.command("run")
-@click.option("--host", default="localhost", help="Host for the FastAPI server")
+@click.option("--host", default="0.0.0.0", help="Host for the FastAPI server")
 @click.option("--port", default=8000, help="Port for the FastAPI server")
 @click.option("--kafka-broker", default="athena.isis.rl.ac.uk:9092", help="Kafka brokers")
 
-def run_server(host: str = "0.0.0.0", port: int = 1001, kafka_broker: str = "localhost:9092"):
+def run_server(host: str = "0.0.0.0", port: int = 1001, kafka_broker: str = "athena.isis.rl.ac.uk:9092"):
     """Run the wrangler FastAPI server."""
     app = FastAPI(title="Wrangler Service", version="1.0.0")
     
