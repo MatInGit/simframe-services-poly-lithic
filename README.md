@@ -1,3 +1,16 @@
+# How to run the test setup
+
+```bash
+docker compose -f docker_compose.yaml up --build
+```
+Note that the kafka broker is assumed to be running at athena.isis.rl.ac.uk:9092. Adjust the configuration in the command args in `docker_compose.yaml` if needed.
+
+Testing:
+
+```bash
+python test_wrangler_client.py
+``` 
+<!-- 
 # simframe_services
 
 A poly_lithic plugin package
@@ -72,4 +85,4 @@ pytest
 
 ## License
 
-simframe_services is released under the MIT License.
+simframe_services is released under the MIT License. -->
