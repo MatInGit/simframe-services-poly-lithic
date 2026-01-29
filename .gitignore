@@ -25,3 +25,6 @@ env/
 
 # OS
 .DS_Store
+
+# vscode workspace settings
+*.code-workspace

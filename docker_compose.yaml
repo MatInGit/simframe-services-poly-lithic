@@ -30,7 +30,7 @@ services:
       dockerfile: docker/poly-wrangler.Dockerfile
     command: ["python", "/app/simframe_services/wrangler.py", "run" , "--host", "0.0.0.0", "--kafka-broker", "athena.isis.rl.ac.uk:9092"]
     ports:
-      - "8000:8000"
+      - "8012:8000"
     networks:
       - simframe_services_network
 

@@ -3,13 +3,55 @@
 ```bash
 docker compose -f docker_compose.yaml up --build
 ```
-Note that the kafka broker is assumed to be running at athena.isis.rl.ac.uk:9092. Adjust the configuration in the command args in `docker_compose.yaml` if needed.
+Adjust the configuration in the command args in `docker_compose.yaml` if needed.
 
 Testing:
 
 ```bash
-python test_wrangler_client.py
+python test_wrangler_client.py # this needs connection to kafka
 ``` 
+
+## Example Usage
+```
+docker compose up
+```
+open http://localhost:8012/docs
+
+List models:
+```
+curl -X 'GET' \
+  'http://localhost:8012/list_models/' \
+  -H 'accept: application/json'
+```
+
+Submit lattice to `test-model-1`:
+```
+
+curl -X 'POST' \
+  'http://localhost:8012/submit_lattice/test-model-1' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "model": "string",
+  "beam": {},
+  "lattice_name": "string",
+  "lattice": {},
+  "job_id": "test-0"
+}'
+```
+
+
+Get result for job `test-0`:
+
+```
+Curl
+
+curl -X 'GET' \
+  'http://localhost:8012/get_result/test-0' \
+  -H 'accept: application/json'
+```
+
+
 <!-- 
 # simframe_services
 

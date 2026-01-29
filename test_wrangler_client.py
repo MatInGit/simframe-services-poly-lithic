@@ -197,7 +197,7 @@ class KafkaListener(threading.Thread):
 
 def submit_job(wrangler_url: str, model_id: str, model_name: str, 
                submitted_jobs: Dict[str, Dict[str, Any]]) -> Dict[str, Any]:
-    """Submit a randomized lattice job to a model via the wrangler."""
+    """Submit a lattice job to a model via the wrangler."""
     job_id = str(uuid.uuid4())
     
     beam = generate_random_beam()

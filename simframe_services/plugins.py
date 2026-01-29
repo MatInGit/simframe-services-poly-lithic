@@ -5,9 +5,7 @@ import threading
 import socket
 
 import uvicorn
-from fastapi import FastAPI, HTTPException, Request
-from fastapi import status as http_status
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI
 import requests
 
 from pydantic import BaseModel
@@ -17,6 +15,7 @@ from poly_lithic.src.interfaces.BaseInterface import BaseInterface
 from poly_lithic.src.transformers.BaseTransformer import BaseTransformer
 
 from simframe_services.schemas import PutRequest, ModelRegistration, LatticeJob
+from simframe_services.routes import setup_v1_routes, setup_v2_routes
 
 logger = get_logger()
     
@@ -107,153 +106,10 @@ class k2simFrame(BaseInterface):
         self._register_with_wrangler(config.get("wrangler_url", "http://localhost:8000"))
         
     def _setup_routes(self):
-        """Setup FastAPI routes matching the SimFrame diagram."""
+        """Setup FastAPI routes - delegates to v1 and v2 route modules."""
+        setup_v1_routes(self)
+        setup_v2_routes(self)  # Currently empty, placeholder for future development
         
-        @self.app.get('/ping', status_code=http_status.HTTP_200_OK)
-        async def ping():
-            """Health check endpoint."""
-            return JSONResponse(
-                content={
-                    'message': 'pong',
-                },
-                status_code=http_status.HTTP_200_OK
-            )
-
-        @self.app.get('/get_settings', status_code=http_status.HTTP_200_OK)
-        async def get_settings():
-            """Get model settings (called by SimFrame via wrangler)."""
-            return JSONResponse(
-                content={
-                    'model': self.model_name,
-                    'lattice_section': self.settings.get('lattice_section', ''),
-                    'beam_properties': self.settings.get('beam_properties', []),
-                    'machine_settings': self.settings.get('machine_settings', [])
-                },
-                status_code=http_status.HTTP_200_OK
-            )
-
-        @self.app.post('/submit_lattice', status_code=http_status.HTTP_202_ACCEPTED)
-        async def submit_lattice(job: LatticeJob):
-            """Submit a lattice simulation job (called by wrangler).
-            
-            Expected input:
-                - model: str
-                - beam: dict (json)
-                - lattice_name: str
-                - lattice: dict (json)
-                - job_id: str (optional)
-            """
-            job_data = job.model_dump()
-            job_id = job_data.get('job_id') # must have job_id
-            if not job_id:
-                raise HTTPException(status_code=http_status.HTTP_400_BAD_REQUEST, detail="job_id is required")
-                
-            else:
-                # Store job - this is the single source of truth
-                self.jobs[job_id] = {
-                    'data': job_data,
-                    'submitted_at': time.time(),
-                    'status': 'queued',
-                    'last_retrieved': None
-                }
-                
-                # If no current job, make this the current one
-                if self.current_job_id is None:
-                    self.current_job_id = job_id
-                    self.jobs[job_id]['status'] = 'processing'
-                    logger.info(f"Job {job_id} set as current job")
-                
-                logger.info(f"Received job {job_id}: {job_data.get('lattice_name')} (status: {self.jobs[job_id]['status']})")
-            
-            return JSONResponse(
-                content={
-                    'message': 'Job accepted',
-                    'job_id': job_id,
-                    'status': self.jobs[job_id]['status']
-                },
-                status_code=http_status.HTTP_202_ACCEPTED
-            )
-
-        @self.app.get('/get_jobs', status_code=http_status.HTTP_200_OK)
-        async def get_jobs():
-            """Get list of all jobs (for debugging)."""
-            return JSONResponse(
-                content={
-                    'current_job_id': self.current_job_id,
-                    'jobs': {
-                        job_id: {
-                            'status': job_info['status'],
-                            'submitted_at': job_info['submitted_at'],
-                            'lattice_name': job_info['data'].get('lattice_name')
-                        }
-                        for job_id, job_info in self.jobs.items()
-                    }
-                },
-                status_code=http_status.HTTP_200_OK
-            )
-        
-        @self.app.get('/get_result', status_code=http_status.HTTP_200_OK)
-        async def get_result(job_id: str):
-            """Get result for a specific job (called by wrangler)."""
-            if job_id not in self.results:
-                # Check if job exists but isn't complete
-                if job_id in self.jobs:
-                    status = self.jobs[job_id]['status']
-                    raise HTTPException(
-                        status_code=http_status.HTTP_202_ACCEPTED,
-                        detail=f"Job {job_id} is still {status}"
-                    )
-                raise HTTPException(
-                    status_code=http_status.HTTP_404_NOT_FOUND,
-                    detail=f"Job {job_id} not found"
-                )
-            
-            result = self.results[job_id]
-            logger.info(f"Returning result for job {job_id}")
-            
-            return JSONResponse(
-                content={
-                    'job_id': job_id,
-                    'beam': result.get('beam', {})
-                },
-                status_code=http_status.HTTP_200_OK
-            )
-
-        @self.app.get('/status', status_code=http_status.HTTP_200_OK)
-        async def get_status():
-            """Get model status (for debugging)."""
-            return JSONResponse(
-                content={
-                    'model_id': self.model_id,
-                    'model_name': self.model_name,
-                    'api_url': f'http://{self.hostname}:{self.port}',
-                    'variables': self.variable_list,
-                    'current_job_id': self.current_job_id,
-                    'queued_jobs': len([j for j in self.jobs.values() if j['status'] == 'queued']),
-                    'processing_jobs': len([j for j in self.jobs.values() if j['status'] == 'processing']),
-                    'completed_jobs': len(self.results)
-                },
-                status_code=http_status.HTTP_200_OK
-            )
-            
-        @self.app.delete('/clear_result', status_code=http_status.HTTP_200_OK)
-        async def clear_result(job_id: str):
-            """Clear result for a specific job (for debugging)."""
-            if job_id in self.results:
-                del self.results[job_id]
-                logger.info(f"Cleared result for job {job_id}")
-                return JSONResponse(
-                    content={
-                        'message': f'Result for job {job_id} cleared'
-                    },
-                    status_code=http_status.HTTP_200_OK
-                )
-            else:
-                raise HTTPException(
-                    status_code=http_status.HTTP_404_NOT_FOUND,
-                    detail=f"Result for job {job_id} not found"
-                )
-
     def _run_api_server(self):
         """Run the FastAPI server in a background thread."""
         uvicorn.run(
@@ -443,7 +299,8 @@ class k2simFrameTransformer(BaseTransformer):
         self.latest_transformed = {}
         
     def transform(self):
-        """Example transform method that could be expanded."""
+        """Example transform method that could be expanded"""
+        
         logger.info("k2simFrameTransformer transform called")
         # Here you would implement the logic to interact with the k2simFrame interface
         # For example, fetching jobs, processing them, and putting results back
