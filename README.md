@@ -5,6 +5,18 @@ docker compose -f docker_compose.yaml up --build
 ```
 Adjust the configuration in the command args in `docker_compose.yaml` if needed.
 
+## Installation
+
+In your environment which already has poly_lithic installed, run:
+```bash
+pip install -e .
+
+pl plugins list
+```
+You should see `k2simframe...` plugins in the list.
+
+![alt text](image.png)
+
 Testing:
 
 ```bash
