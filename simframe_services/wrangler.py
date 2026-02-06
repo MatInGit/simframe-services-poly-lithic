@@ -19,6 +19,7 @@ SimFrmae picks up the message and fetches the results from the wrangler - RestAP
 """
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from typing import Dict, Any
 
 from confluent_kafka import Producer, KafkaError, Consumer
@@ -42,7 +43,7 @@ class WranglerServer:
         self.registered_models: Dict[str, ModelRegistration] = {}
         self.jobs: Dict[str, Dict[str, Any]] = {}
         self.results: Dict[str, Any] = {}
-        self.kakfa_job_ids = []  # list of job ids received via kafka, this means someone is waiting for results
+        self.kakfa_job_ids = []  # list of job ids received via kafka, to be sent 
 
         # Only initialize Kafka if enabled
         if self.kafka_enabled:
@@ -62,7 +63,7 @@ class WranglerServer:
         # monitor kafka for incoming messages and respond with results to corresponding jobids
         # This is a SYNCHRONOUS blocking function that runs in a thread
 
-        self.consumer.subscribe(["simframe_requests"])
+        self.consumer.subscribe(["pl_job_results_0"])
 
         while True:
             # go though the queue of job ids and check if we have results for them
@@ -76,12 +77,15 @@ class WranglerServer:
                         "status": "completed",
                     }
                     self.producer.produce(
-                        "wrangler_results", key=job_id, value=json.dumps(result_message)
+                        "pl_job_results", key=job_id, value=json.dumps(result_message)
                     )
                     print(f"Emitted results for job {job_id} to kafka.")
                     self.producer.flush()
                     self.kakfa_job_ids.remove(job_id)
-
+            
+            
+            
+            
             msg = self.consumer.poll(1.0)
             if msg is None:
                 continue
@@ -138,6 +142,11 @@ class WranglerServer:
             return
         self.consumer.close()
         self.producer.flush()
+        
+    def add_kafka_job_id(self, job_id: str):
+        # Add a job id to the kafka job ids list if not already present
+        if job_id not in self.kakfa_job_ids:
+            self.kakfa_job_ids.append(job_id)
 
 
 # click command group
@@ -164,6 +173,15 @@ def run_server(
 ):
     """Run the wrangler FastAPI server."""
     app = FastAPI(title="Wrangler Service", version="1.0.0")
+
+    # Add CORS middleware to allow cross-origin requests (e.g., from test UI)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     server = WranglerServer(kafka_broker, kafka_enabled=not no_kafka)
     server.start_kafka_monitor()

@@ -287,6 +287,15 @@ class k2simFrame(BaseInterface):
     def is_running(self) -> bool:
         """Check if the API server is running."""
         return self.server_thread is not None and self.server_thread.is_alive()
+    
+    def get_outputs(self) -> list[str]:
+        """Get a list of outputs that we should publish to."""
+        return ["results"]  # We publish 'results' to downstream components
+    
+    def get_inputs(self) -> list[str]:
+        """Get a list of inputs that we should accept."""
+        return ["jobs"]  # We accept 'jobs' from upstream components
+
 
 
 class k2simFrameTransformer(BaseTransformer):

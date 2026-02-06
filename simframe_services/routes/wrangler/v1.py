@@ -166,6 +166,7 @@ async def _poll_model_for_results(
                 if response.status_code == 200:
                     # save results
                     server.results[job_id] = response.json()
+                    server.add_kafka_job_id(job_id)
                     print(f"Saved results for job {job_id}.")
                     # clear job result from model
                     await client.delete(
