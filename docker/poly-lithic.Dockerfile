@@ -1,4 +1,4 @@
-FROM isisacceleratorcontrols/poly-lithic:base-v0.1.7.3
+FROM isisacceleratorcontrols/poly-lithic:base-v1.7.3
 
 WORKDIR /app
 
